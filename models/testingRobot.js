@@ -1,0 +1,58 @@
+const testRobot = {
+    id: 100,
+    firstName: 'Tevin',
+    lastName: 'Prohaska',
+    maidenName: 'Rowe',
+    age: 34,
+    gender: 'male',
+    email: 'pcumbes2r@networkadvertising.org',
+    phone: '+46 185 553 3726',
+    username: 'pcumbes2r',
+    password: 'obhSsvCF8c0',
+    birthDate: '1988-08-14',
+    image: 'https://robohash.org/eosvoluptasquia.png',
+    bloodGroup: 'O−',
+    height: 186,
+    weight: 54.4,
+    eyeColor: 'Brown',
+    hair: { color: 'Brown', type: 'Curly' },
+    domain: 'odnoklassniki.ru',
+    ip: '186.66.83.17',
+    address: {
+      address: '109 Summit Street',
+      city: 'Burlington',
+      coordinates: { lat: 44.4729749, lng: -73.2026566 },
+      postalCode: '05401',
+      state: 'VT',
+    },
+    macAddress: 'E1:00:69:FF:2D:94',
+    university: 'Gotland University College',
+    bank: {
+      cardExpire: '06/22',
+      cardNumber: '3565600124206309',
+      cardType: 'jcb',
+      currency: 'Krona',
+      iban: 'FR19 2200 9407 28AH Q2CV AT31 S49',
+    },
+    company: {
+      address: {
+        address: '8376 Albacore Drive',
+        city: 'Pasadena',
+        coordinates: {
+          lat: 39.110409,
+          lng: -76.46565799999999,
+        },
+        postalCode: '21122',
+        state: 'MD',
+      },
+      department: 'Marketing',
+      name: 'Wisozk LLC',
+      title: 'VP Sales',
+    },
+    ein: '02-4892541',
+    ssn: '370-10-1238',
+    userAgent:
+      'Mozilla/5.0 (Windows; U; Windows NT 6.0; ja-JP) AppleWebKit/533.16 (KHTML, like Gecko) Version/5.0 Safari/533.16',
+  };
+  
+  module.exports = {testRobot}
