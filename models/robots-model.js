@@ -85,6 +85,7 @@ const Robots = new Schema(
     age: { type: Number, required: false },
     height: { type: Number, required: false },
     weight: { type: Number, required: false },
+    userRole: { type: String, required: false },
   }
   //   { timestamps: true }
 );

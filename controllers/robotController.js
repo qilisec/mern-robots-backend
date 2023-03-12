@@ -1,11 +1,17 @@
 const Robot = require('../models/robots-model');
 
+// const createRobot = async (err, req, res, next) => {
 const createRobot = async (req, res) => {
   const { body } = req;
+  // console.log(
+  //   `createRobot: req is ${Object.keys(req)}; req.body is ${Object.keys(body)}}`
+  // );
+  // console.log(`createRobot: req.body is ${Object.keys(body)}}`);
+
   if (!body) {
     return res.status(490).json({
       success: false,
-      error: 'Robot Creation Failed',
+      error: `Robot Creation Failed: Error is ${err}`,
     });
   }
 
@@ -32,22 +38,46 @@ const createRobot = async (req, res) => {
   }
 
   if (!checkRobot) {
-    const savedRobot = await robot.save()
-    try {
-      res.status(201).json({
-        success: true,
-        id: robot._id,
-        message: 'Robot created!',
-      }),
-      console.log(`robot created: ${robot.robotId}`)
-    
-    } catch (err) {
-      res.status(492).json({
-        err,
-        message: 'Robot not created!',
+    const savedRobot = robot
+      .save()
+      .then(
+        res.status(201).json({
+          success: true,
+          id: robot._id,
+          message: 'Robot created!',
+        }),
+        console.log(`Robot created!`)
+      )
+      .then((saveSuccess) => {
+        const savedRobotId = saveSuccess.robotId;
+        console.log(`robot created with robotId: ${savedRobotId}`);
       })
-    }
-      }
+      .catch((err) => {
+        res.status(492).json({
+          err,
+          message: 'Robot not created!',
+        });
+      });
+    // try {
+    //   res.status(201).json({
+    //     success: true,
+    //     id: robot._id,
+    //     message: 'Robot created!',
+    //   });
+    //   console.log(`robot created: ${robot.robotId}`);
+    // } catch (err) {
+    //   res.status(492).json({
+    //     err,
+    //     message: 'Robot not created!',
+    //   });
+    // }
+    return savedRobot;
+  }
+  const creationSuccess = res.status(490).json({
+    success: false,
+    message: `A robot with robotId: ${checkRobot.robotId} already exists`,
+  });
+  return creationSuccess;
 };
 
 const updateRobot = async (req, res) => {
@@ -144,7 +174,7 @@ const getRobotById = async (req, res) => {
   })
 };
 
-const getRobots = async (req, res) => {
+const getAllRobots = async (req, res) => {
   await Robot.find({}, (err, robots) => {
     if (err) {
       return res.status(400).json({ success: false, error: err });
@@ -161,5 +191,5 @@ module.exports = {
   updateRobot,
   deleteRobot,
   getRobotById,
-  getRobots,
+  getAllRobots,
 };
