@@ -21,20 +21,24 @@ const createRobot = async (req, res) => {
     { robotId: Number(robot.robotId) },
     (err, targetRobot) => {
       if (err) {
-        console.log("checkRobot didn't find a robot")
+        console.log("checkRobot didn't find a robot");
         // return res.status(400).json({ success: false, error: err });
       } else {
-          console.log(`checkRobot found a robot with the same robotId: ${robot.robotId}`)
+        console.log(
+          `checkRobot found a robot with the same robotId: ${robot.robotId}`
+        );
         //   return res.status(200).json({ success: true, data: targetRobot });
-        return targetRobot
+        return targetRobot;
       }
     }
   ).catch((err) => console.log(err));
 
   if (!robot) {
-    const output = res.status(491).json({ success: false, error: err, message: "not a robot" })
+    const output = res
+      .status(491)
+      .json({ success: false, message: 'not a robot' });
     console.log(`!robot: Output message is ${output.message}`);
-    return output
+    return output;
   }
 
   if (!checkRobot) {
@@ -90,14 +94,14 @@ const updateRobot = async (req, res) => {
     });
   }
 
-  Robot.findOne({_id: req.params.id }, (err, robot) => {
+  Robot.findOne({ _id: req.params.id }, (err, robot) => {
     if (err) {
       return res.status(404).json({
         err,
         message: 'Robot not found!',
       });
     }
-    robot.robotId = body.robotId
+    robot.robotId = body.robotId;
     robot.firstName = body.firstName;
     robot.lastName = body.lastName;
     robot.maidenName = body.maidenName;
@@ -141,37 +145,33 @@ const updateRobot = async (req, res) => {
 };
 
 const deleteRobot = async (req, res) => {
-  await Robot.findOneAndDelete({_id: req.params.id }, (err, robot) => {
+  await Robot.findOneAndDelete({ _id: req.params.id }, (err, robot) => {
     if (err) {
       return res.status(400).json({ success: false, error: err });
-    } else {
-        if (!robot) {
-          return res.status(404).json({ success: false, error: `Robot not found` });
-        }
-    
-        return res.status(200).json({ success: true, data: robot });
+    }
+    if (!robot) {
+      return res.status(404).json({ success: false, error: `Robot not found` });
     }
 
+    return res.status(200).json({ success: true, data: robot });
   }).catch((err) => console.log(err));
 };
 
 const getRobotById = async (req, res) => {
-  if (req.params.id === "undefined" || req.params.id === Number("NaN")) 
-  {
-    req.params.id = -1
-    return res.status(489).json({ success: false })
-};
+  if (req.params.id === 'undefined' || req.params.id === Number('NaN')) {
+    req.params.id = -1;
+    return res.status(489).json({ success: false });
+  }
   await Robot.findOne({ id: req.params.id }, (err, robot) => {
     try {
       if (err) {
         return res.status(488).json({ success: false, error: err });
-      } else {
-          return res.status(200).json({ success: true, data: robot });
       }
+      return res.status(200).json({ success: true, data: robot });
     } catch (err) {
-      console.log(`getRobotById Error: ${err}`)
+      console.log(`getRobotById Error: ${err}`);
     }
-  })
+  });
 };
 
 const getAllRobots = async (req, res) => {

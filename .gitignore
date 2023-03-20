@@ -4,3 +4,8 @@ keys
 lessons.txt
 .vscode
 *.testing.*
+*.old.*
+*.work.*
+*.working.*
+*.staging.*
+*.stage.*

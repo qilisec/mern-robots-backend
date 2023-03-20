@@ -4,8 +4,8 @@ const { Schema } = mongoose;
 
 const Robots = new Schema(
   {
-    id: {type: String, required: false},
-    robotId: {type: Number, required: true},
+    id: { type: String, required: false },
+    robotId: { type: Number, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     maidenName: { type: String, required: false },
