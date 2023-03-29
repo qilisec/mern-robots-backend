@@ -1,67 +1,96 @@
 /* eslint-disable dot-notation */
+const chalk = require('chalk');
 const dotenv = require('dotenv');
 
 dotenv.config();
-const jwt = require('jsonwebtoken');
+
 const bcrypt = require('bcryptjs');
-const { Users, Roles } = require('../models/users-model');
+const { Users, Roles } = require('../models/usersModel');
 
 const { refreshJWT } = require('./jwtRefreshController');
 
 const { createAccessToken, createRefreshToken } = refreshJWT;
 
-const authenticateSignup = (req, res) => {
-  const { username, email, password: unhashedPassword, roles } = req;
-  const assignedRoles = roles[0];
+const { log } = console;
 
-  const newUser = new Users({
-    username,
-    email,
-    password: bcrypt.hashSync(unhashedPassword, 8),
-  });
-
-  newUser.save((err, savedUser) => {
-    if (err) {
-      res.status(500).send({ message: err });
-      return;
-    }
-
-    if (roles) {
-      Roles.find({ name: { $in: assignedRoles } }, (err, foundRoles) => {
-        if (err) {
-          res.status(500).send({ message: err });
-          return;
-        }
-        savedUser.roles = foundRoles.map((foundRole) => foundRole._id);
-        savedUser.save((err, savedRoles) => {
-          if (err) {
-            res.status(500).send({ message: err });
-            return;
-          }
-          if (res) res.send({ message: 'User was registered successfully!' });
-          return savedRoles;
-        });
-      });
-    } else if (!roles) {
-      Roles.findOne({ name: 'user' }, (err, newRole) => {
-        if (err) {
-          res.status(500).send({ message: err });
-          return;
-        }
-        newUser.roles = [newRole._id];
-        newUser.save((err) => {
-          if (err) {
-            res.status(500).send({ message: err });
-            return;
-          }
-          res.send({ message: 'User was registered successfully!' });
-        });
+const sendSignupAuthentication = async (req, res) => {
+  try {
+    const newRegisteredUser = await registerNewUser(req.body);
+    if (newRegisteredUser) {
+      const { username, email, password, roles } = newRegisteredUser;
+      console.log(`signup complete: ${newRegisteredUser}`);
+      return res.status(200).send({
+        message: `User ${username}was registered successfully`,
+        username,
+        email,
+        password,
+        roles,
       });
     }
-  });
+  } catch (err) {
+    return res.status(200).send({ message: `SignupError: ${err}` });
+  }
 };
 
-const authenticateSignIn = async (req, res) => {
+const registerNewUser = async (registrationInfo) => {
+  try {
+    const {
+      username,
+      email,
+      password: unhashedPassword,
+      roles,
+      created,
+    } = registrationInfo;
+
+    // Don't place dbCheck in registerNewUser function; decouple and insert dbcheck conditional in "parent" function
+    // const checkUsers = dbCheck(Users, inputQueries, 'Users');
+    // if ((await checkUsers).length === 0) {
+    log(chalk.red(`registerNewUser: invoking generateNewUser:`, username));
+
+    const roleIds = roles
+      ? (await Roles.find({ name: { $in: roles } })).map(
+          (found) =>
+            // console.log(
+            //   `registerNewUser: ${username}: roles exists; found:`,
+            //   found
+            // );
+            // console.log(
+            //   `registerNewUser: ${username}: found.name: ${found.name}; _id: ${found._id}`
+            // );
+            found._id
+        )
+      : (await Roles.find({ name: 'user' })).map((found) => {
+          log(`roles doesn't exist`);
+          return found._id;
+        });
+
+    if (roleIds.length === roles.length) {
+      console.log(`registerNewUser: Lengths are equal:
+      await roleIds: ${await roleIds}; roles: ${roles}`);
+      const newUser = new Users({
+        username,
+        email,
+        password: bcrypt.hashSync(unhashedPassword, 8),
+        roles: roleIds,
+        created,
+      });
+
+      const savedUser = newUser
+        .save()
+        .then((saved) => {
+          if (!saved) return log(`registerNewUser: "saved" was empty:`);
+          return saved;
+        })
+        .catch((err) => err);
+
+      return savedUser;
+    }
+  } catch (err) {
+    // console.log(`registerNewUser: role names and role IDs do not match: await roleIds: ${await roleIds};
+  }
+};
+
+const sendSigninAuthentication = async (req, res) => {
   const { username, password: unhashedPassword } = req.body;
   Users.findOne({
     username,
@@ -128,7 +157,7 @@ const authenticateSignIn = async (req, res) => {
     });
 };
 
-const logoutUser = async (req, res) => {
+const sendUserLogout = async (req, res) => {
   // Do I need to do this? Does this even do anything?
   res.header({ Authorization: `` });
 
@@ -204,8 +233,9 @@ const checkAuthorization = {
 };
 
 module.exports = {
-  authenticateSignup,
-  authenticateSignIn,
-  logoutUser,
+  registerNewUser,
+  sendSignupAuthentication,
+  sendSigninAuthentication,
+  sendUserLogout,
   checkAuthorization,
 };

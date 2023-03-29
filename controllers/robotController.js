@@ -1,4 +1,4 @@
-const Robot = require('../models/robots-model');
+const Robot = require('../models/robotsModel');
 
 // const createRobot = async (err, req, res, next) => {
 const createRobot = async (req, res) => {
@@ -157,6 +157,10 @@ const deleteRobot = async (req, res) => {
   }).catch((err) => console.log(err));
 };
 
+const deleteAllSeedRobots = async (req, res) => {
+  await Robot.find({});
+};
+
 const getRobotById = async (req, res) => {
   if (req.params.id === 'undefined' || req.params.id === Number('NaN')) {
     req.params.id = -1;
@@ -190,6 +194,7 @@ module.exports = {
   createRobot,
   updateRobot,
   deleteRobot,
+  deleteAllSeedRobots,
   getRobotById,
   getAllRobots,
 };

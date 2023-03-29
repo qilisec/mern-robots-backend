@@ -1,32 +1,35 @@
 const express = require('express');
 const {
-  authenticateSignup,
-  authenticateSignIn,
-  logoutUser,
+  sendSignupAuthentication,
+  sendSigninAuthentication,
+  sendUserLogout,
   // getAllUsers,
+  // reseedUsers,
   checkAuthorization,
 } = require('../controllers/authController');
 
 const { isAdmin, isModerator } = checkAuthorization;
 
 const { refreshJWT } = require('../controllers/jwtRefreshController');
-const { getUserProfile } = require('../controllers/getUserProfile');
 
 const {
   verifyAccessToken,
-  createAccessToken,
-  createRefreshToken,
-  refreshAccessToken,
+  sendNewAccessToken,
   checkAccessTokenAge,
   sendRefreshToken,
 } = refreshJWT;
 
 const {
-  // checkMissingRoles,
-  checkExistingAccount,
+  sendUserProfile,
+  checkExistingAccountByName,
   checkValidRole,
   sendAuthorization,
 } = require('../controllers/userController');
+
+const {
+  reseedUsers,
+  deleteSeedUsers,
+} = require('../controllers/dbSeedController');
 
 const { allAccess, userBoard, adminBoard, moderatorBoard } = sendAuthorization;
 
@@ -35,24 +38,27 @@ const router = express.Router();
 // /////////////////////////////
 // /// Authentication Routes ///
 // /////////////////////////////
-router.post('/authentication/signin', authenticateSignIn);
+router.post('/authentication/signin', sendSigninAuthentication);
+
 router.post(
   '/authentication/signup',
-  [checkExistingAccount, checkValidRole],
-  authenticateSignup
+  [checkExistingAccountByName, checkValidRole],
+  sendSignupAuthentication
 );
-router.post(`/authentication/logout`, [verifyAccessToken], logoutUser);
+router.post(`/authentication/logout`, [verifyAccessToken], sendUserLogout);
 
 // ////////////////////////////
 // /// Authorization Routes ///
 // ////////////////////////////
 router.post('/authentication/refresh', sendRefreshToken);
-router.put('/authentication/refresh', refreshAccessToken);
+router.put('/authentication/refresh', sendNewAccessToken);
 
 // ////////////////////////////
 // ///      User Routes     ///
 // ////////////////////////////
-router.post(`/users/:userId`, [verifyAccessToken], getUserProfile);
+router.post('/users', reseedUsers);
+router.post(`/users/:userId`, [verifyAccessToken], sendUserProfile);
+router.delete('/users', deleteSeedUsers);
 
 router.get('/test/all', allAccess);
 router.get('/test/user', [verifyAccessToken], userBoard);

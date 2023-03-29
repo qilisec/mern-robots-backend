@@ -76,7 +76,7 @@ const sendRefreshToken = async (req, res) => {
   }
 };
 
-const refreshAccessToken = async (req, res) => {
+const sendNewAccessToken = async (req, res) => {
   const cookieRefreshToken = req.cookies.rtkn;
   const argumentRefreshToken = req.body.refreshToken;
   if (cookieRefreshToken === argumentRefreshToken) {
@@ -105,7 +105,7 @@ const refreshJWT = {
   verifyAccessToken,
   createAccessToken,
   createRefreshToken,
-  refreshAccessToken,
+  sendNewAccessToken,
   // checkAccessTokenAge,
   sendRefreshToken,
 };

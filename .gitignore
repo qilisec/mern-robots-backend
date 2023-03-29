@@ -9,3 +9,4 @@ lessons.txt
 *.working.*
 *.staging.*
 *.stage.*
+controllers/reseedUsers

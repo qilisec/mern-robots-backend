@@ -1,3 +1,6 @@
+// import chalk from 'chalk';
+const chalk = require('chalk');
+
 const https = require('https');
 const fs = require('fs');
 const express = require('express');
@@ -8,6 +11,8 @@ const cookieParser = require('cookie-parser');
 const db = require('./db');
 const robotsRouter = require('./routes/robotsRouter');
 const usersRouter = require('./routes/usersRouter');
+
+const { log } = console;
 
 const app = express();
 const apiPort = 3000;
@@ -43,7 +48,18 @@ https
     app
   )
   .listen(apiPort, () => {
-    console.log(`Server running on port ${apiPort}`);
+    log(
+      chalk.blue(
+        `${
+          new Date().toString().split(' ')[4].split(' ')[0]
+        }\nServer running on port ${apiPort}`
+      )
+    );
+    // console.log(
+    //   `${
+    //     new Date().toString().split(' ')[4].split(' ')[0]
+    //   }\nServer running on port ${apiPort}`
+    // );
   });
 
 app.get('/', (req, res) => {
