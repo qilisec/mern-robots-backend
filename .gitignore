@@ -1,3 +1,12 @@
 node_modules
 keys
 .env
+lessons.txt
+.vscode
+*.testing.*
+*.old.*
+*.work.*
+*.working.*
+*.staging.*
+*.stage.*
+controllers/reseedUsers

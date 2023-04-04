@@ -4,8 +4,8 @@ const { Schema } = mongoose;
 
 const Robots = new Schema(
   {
-    id: {type: String, required: false},
-    robotId: {type: Number, required: true},
+    id: { type: String, required: false },
+    robotId: { type: Number, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     maidenName: { type: String, required: false },
@@ -85,6 +85,7 @@ const Robots = new Schema(
     age: { type: Number, required: false },
     height: { type: Number, required: false },
     weight: { type: Number, required: false },
+    createdBy: { type: String, required: false },
   }
   //   { timestamps: true }
 );
