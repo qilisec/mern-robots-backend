@@ -9,6 +9,7 @@ const refreshSecret = process.env.JWT_SECRET_REFRESH;
 // Middleware
 const verifyAccessToken = (req, res, next) => {
   // Note that header key is always in all lowercase
+  console.log(`verifyAccessToken invoked: req.body`, req.body);
   const authHeader = req.headers?.authorization
     ? req.headers.authorization
     : null;
@@ -26,8 +27,10 @@ const verifyAccessToken = (req, res, next) => {
       return res.status(401).send({ message: 'Unauthorized!' });
     }
 
+    console.log(`verifyAccessToken, req.body.userId:`, req.body);
     const userId = req.body?.userId ? req.body.userId : null;
     const username = req.body?.username ? req.body.username : null;
+
     // Take into account payload may differ between functions. Sometimes might be userId, sometimes username
     if (userId === decoded.userId || username === decoded.username) {
       console.log(`----verifyAT: check passed----`);

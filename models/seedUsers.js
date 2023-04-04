@@ -3,7 +3,7 @@ const initialUser1 = {
   email: 'user1@test.com',
   password: '1',
   roles: ['user', 'seed'],
-  created: 'seed',
+  createdBy: 'seed',
 };
 
 const initialUser2 = {
@@ -11,7 +11,7 @@ const initialUser2 = {
   email: 'user2@test.com',
   password: '2',
   roles: ['user', 'seed'],
-  created: 'seed',
+  createdBy: 'seed',
 };
 
 const initialUser3 = {
@@ -19,9 +19,17 @@ const initialUser3 = {
   email: 'user3@test.com',
   password: '3',
   roles: ['user', 'seed'],
-  created: 'seed',
+  createdBy: 'seed',
 };
 
-const seedList = [initialUser1, initialUser2, initialUser3];
+const initialUser4 = {
+  username: 'admin',
+  email: 'admin@test.com',
+  password: 'admin',
+  roles: ['user', 'admin'],
+  createdBy: 'seed',
+};
+
+const seedList = [initialUser1, initialUser2, initialUser3, initialUser4];
 
 module.exports = { seedList };

@@ -1,6 +1,7 @@
 const express = require('express');
 const {
-  sendSignupAuthentication,
+  sendNewSignupAuth,
+  newSignupAuth,
   sendSigninAuthentication,
   sendUserLogout,
   // getAllUsers,
@@ -28,7 +29,7 @@ const {
 
 const {
   reseedUsers,
-  deleteSeedUsers,
+  sendDeleteSeedUsers,
 } = require('../controllers/dbSeedController');
 
 const { allAccess, userBoard, adminBoard, moderatorBoard } = sendAuthorization;
@@ -43,7 +44,7 @@ router.post('/authentication/signin', sendSigninAuthentication);
 router.post(
   '/authentication/signup',
   [checkExistingAccountByName, checkValidRole],
-  sendSignupAuthentication
+  sendNewSignupAuth
 );
 router.post(`/authentication/logout`, [verifyAccessToken], sendUserLogout);
 
@@ -56,9 +57,9 @@ router.put('/authentication/refresh', sendNewAccessToken);
 // ////////////////////////////
 // ///      User Routes     ///
 // ////////////////////////////
-router.post('/users', reseedUsers);
+router.post('/users', [verifyAccessToken, isAdmin], reseedUsers);
 router.post(`/users/:userId`, [verifyAccessToken], sendUserProfile);
-router.delete('/users', deleteSeedUsers);
+router.delete('/users', [verifyAccessToken, isAdmin], sendDeleteSeedUsers);
 
 router.get('/test/all', allAccess);
 router.get('/test/user', [verifyAccessToken], userBoard);

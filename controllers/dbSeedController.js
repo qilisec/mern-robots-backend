@@ -1,5 +1,6 @@
+const Robot = require('../models/robotsModel');
 const { Users, Roles, validRoles } = require('../models/usersModel');
-const { registerNewUser } = require('./authController');
+const { newSignupAuth } = require('./authController');
 const { seedList } = require('../models/seedUsers');
 
 const { log } = console;
@@ -22,7 +23,7 @@ const reseedUsers = async (req, res) => {
             const checkExistingUser = await dbCheck(Users, { username, email });
 
             if (checkExistingUser === false) {
-              return registerNewUser(inputSeed);
+              return newSignupAuth(inputSeed);
             }
             return `User ${username} already exists in DB`;
             // return checkExistingUser;
@@ -33,7 +34,7 @@ const reseedUsers = async (req, res) => {
       );
 
       const finishedSeeds = await queueSeeds;
-      console.log(`reseedUsers: complete promise.all:`, finishedSeeds);
+      // console.log(`reseedUsers: complete promise.all:`, finishedSeeds);
       if (!finishedSeeds)
         return console.log(
           `reseedUsers: Didn't fire; added roles: ${addedRoles}`
@@ -52,7 +53,7 @@ const reseedUsers = async (req, res) => {
   }
 };
 
-const deleteSeedUsers = async (req, res) => {
+const sendDeleteSeedUsers = async (req, res) => {
   try {
     const deletedSeeds = await clearSeedUsers();
     const message = `deleteSeedUsers: seedUsers deleted`;
@@ -107,7 +108,7 @@ const queryDBContainsSeedRoles = async (validRoleList) => {
       .then((check) => check)
       .catch((err) => err);
 
-    const checkCount = (await checkRoles).length;
+    const checkCount = (await checkRoles)?.length;
 
     if (checkCount !== validRoleList.length) {
       // If lengths not equal, wipe existing roles from DB and re-add them;
@@ -152,7 +153,7 @@ const clearDbRoles = async () => {
   return rolesDelete;
 };
 
-const clearSeeds = async () => {
+const clearSeedUsersAndRoles = async () => {
   const clearUsers = clearSeedUsers();
   const clearRoles = clearDbRoles();
   const removalFinish = await Promise.all([clearUsers, clearRoles]);
@@ -160,10 +161,37 @@ const clearSeeds = async () => {
   return false;
 };
 
+const sendDeleteAllSeedRobots = async (req, res) => {
+  try {
+    console.log(`sendDeleteAllSeedRobots req.body`, req.body);
+    const deletedRobots = await Robot.deleteMany({ createdBy: 'seed' });
+    return res.status(200).send({
+      message: `sendDeleteAllSeedRobots: deletion success:`,
+      deletions: deletedRobots,
+    });
+  } catch (err) {
+    log(`sendDeleteAllSeedRobots: error: ${err}`);
+  }
+};
+
+const sendGetAllSeedRobots = async (req, res) => {
+  Robot.find({}, (err, robots) => {
+    if (err) {
+      return res.status(400).json({ success: false, error: err });
+    }
+    if (!robots.length) {
+      return res.status(404).json({ success: false, error: `Robot not found` });
+    }
+    return res.status(200).json({ success: true, data: robots });
+  }).catch((err) => console.log(err));
+};
+
 module.exports = {
   reseedUsers,
-  deleteSeedUsers,
+  sendDeleteSeedUsers,
   dbCheck,
   queryDBContainsSeedRoles,
-  clearSeeds,
+  clearSeedUsersAndRoles,
+  sendDeleteAllSeedRobots,
+  sendGetAllSeedRobots,
 };

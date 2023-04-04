@@ -7,7 +7,7 @@ const UsersSchema = new Schema({
   email: { type: String, required: false },
   password: { type: String, required: true },
   roles: [{ type: Schema.Types.ObjectId, ref: 'roles', required: true }],
-  created: { type: String, required: false },
+  createdBy: { type: String, required: false },
   // inputRoles: [{ type: String, required: false }],
 });
 

@@ -13,9 +13,9 @@ const { createAccessToken, createRefreshToken } = refreshJWT;
 
 const { log } = console;
 
-const sendSignupAuthentication = async (req, res) => {
+const sendNewSignupAuth = async (req, res) => {
   try {
-    const newRegisteredUser = await registerNewUser(req.body);
+    const newRegisteredUser = await newSignupAuth(req.body);
     if (newRegisteredUser) {
       const { username, email, password, roles } = newRegisteredUser;
       console.log(`signup complete: ${newRegisteredUser}`);
@@ -32,30 +32,30 @@ const sendSignupAuthentication = async (req, res) => {
   }
 };
 
-const registerNewUser = async (registrationInfo) => {
+const newSignupAuth = async (registrationInfo) => {
   try {
     const {
       username,
       email,
       password: unhashedPassword,
       roles,
-      created,
+      createdBy,
     } = registrationInfo;
 
-    // Don't place dbCheck in registerNewUser function; decouple and insert dbcheck conditional in "parent" function
+    // Don't place dbCheck in newSignupAuth function; decouple and insert dbcheck conditional in "parent" function
     // const checkUsers = dbCheck(Users, inputQueries, 'Users');
     // if ((await checkUsers).length === 0) {
-    log(chalk.red(`registerNewUser: invoking generateNewUser:`, username));
+    log(chalk.red(`newSignupAuth: invoking generateNewUser:`, username));
 
     const roleIds = roles
       ? (await Roles.find({ name: { $in: roles } })).map(
           (found) =>
             // console.log(
-            //   `registerNewUser: ${username}: roles exists; found:`,
+            //   `newSignupAuth: ${username}: roles exists; found:`,
             //   found
             // );
             // console.log(
-            //   `registerNewUser: ${username}: found.name: ${found.name}; _id: ${found._id}`
+            //   `newSignupAuth: ${username}: found.name: ${found.name}; _id: ${found._id}`
             // );
             found._id
         )
@@ -65,20 +65,26 @@ const registerNewUser = async (registrationInfo) => {
         });
 
     if (roleIds.length === roles.length) {
-      console.log(`registerNewUser: Lengths are equal:
+      console.log(`newSignupAuth: Lengths are equal:
       await roleIds: ${await roleIds}; roles: ${roles}`);
-      const newUser = new Users({
-        username,
-        email,
-        password: bcrypt.hashSync(unhashedPassword, 8),
-        roles: roleIds,
-        created,
-      });
+      // Better not to define newUser with decoupled variables because then I need to modify var names in multiple locations if I change the name in the underlying model (e.g. created => createdBy).
+      // Better to lay down the base framework using registration info and subsequently overwrite.
+      // const newUser = new Users({
+      //   username,
+      //   email,
+      //   password: bcrypt.hashSync(unhashedPassword, 8),
+      //   roles: roleIds,
+      //   createdBy,
+      // });
+
+      const newUser = new Users(registrationInfo);
+      newUser.password = bcrypt.hashSync(unhashedPassword, 8);
+      newUser.roles = roleIds;
 
       const savedUser = newUser
         .save()
         .then((saved) => {
-          if (!saved) return log(`registerNewUser: "saved" was empty:`);
+          if (!saved) return log(`newSignupAuth: "saved" was empty:`);
           return saved;
         })
         .catch((err) => err);
@@ -86,11 +92,12 @@ const registerNewUser = async (registrationInfo) => {
       return savedUser;
     }
   } catch (err) {
-    // console.log(`registerNewUser: role names and role IDs do not match: await roleIds: ${await roleIds};
+    // console.log(`newSignupAuth: role names and role IDs do not match: await roleIds: ${await roleIds};
   }
 };
 
 const sendSigninAuthentication = async (req, res) => {
+  log(`sendSignin: req`, req);
   const { username, password: unhashedPassword } = req.body;
   Users.findOne({
     username,
@@ -168,63 +175,67 @@ const sendUserLogout = async (req, res) => {
 };
 
 const isAdmin = (req, res, next) => {
-  Users.findById(req.userId).exec((err) => {
-    if (err) {
+  // console.log(`isAdmin invoked; req.userId:`, req.userId);
+  Users.findById(req.userId)
+    .exec()
+    .catch((err) => {
       res.status(500).send({ message: err });
-      return;
-    }
-
-    Roles.find(
-      {
-        _id: { $in: Users.roles },
-      },
-      (err, roles) => {
-        if (err) {
-          res.status(500).send({ message: err });
-          return;
-        }
-
-        for (let i = 0; i < roles.length; i += 1) {
-          if (roles[i].name === 'admin') {
-            next();
+      return err;
+    })
+    .then((foundUser) => {
+      Roles.find(
+        {
+          _id: { $in: foundUser.roles },
+        },
+        (err, roles) => {
+          if (err) {
+            res.status(500).send({ message: err });
             return;
           }
-        }
+          // log(`isAdmin: roles:`, roles);
+          for (let i = 0; i < roles.length; i += 1) {
+            // log(`roles[i].name: ${roles[i].name}`);
+            if (roles[i].name === 'admin') {
+              log(`${req.userId?.slice(-5)} is confirmed admin`);
+              next();
+              return;
+            }
+          }
 
-        res.status(403).send({ message: 'Require Admin Role!' });
-      }
-    );
-  });
+          res.status(403).send({ message: 'Require Admin Role!' });
+        }
+      );
+    });
 };
 
 const isModerator = (req, res, next) => {
-  Users.findById(req.userId).exec((err) => {
-    if (err) {
+  Users.findById(req.userId)
+    .exec()
+    .catch((err) => {
       res.status(500).send({ message: err });
-      return;
-    }
-
-    Roles.find(
-      {
-        _id: { $in: Users.roles },
-      },
-      (err, roles) => {
-        if (err) {
-          res.status(500).send({ message: err });
-          return;
-        }
-
-        for (let i = 0; i < roles.length; i += 1) {
-          if (roles[i].name === 'moderator') {
-            next();
+    })
+    .then((foundUser) => {
+      Roles.find(
+        {
+          _id: { $in: foundUser.roles },
+        },
+        (err, roles) => {
+          if (err) {
+            res.status(500).send({ message: err });
             return;
           }
-        }
 
-        res.status(403).send({ message: 'Require Moderator Role!' });
-      }
-    );
-  });
+          for (let i = 0; i < roles.length; i += 1) {
+            if (roles[i].name === 'moderator') {
+              next();
+              return;
+            }
+          }
+
+          res.status(403).send({ message: 'Require Moderator Role!' });
+        }
+      );
+    });
 };
 
 const checkAuthorization = {
@@ -233,8 +244,8 @@ const checkAuthorization = {
 };
 
 module.exports = {
-  registerNewUser,
-  sendSignupAuthentication,
+  sendNewSignupAuth,
+  newSignupAuth,
   sendSigninAuthentication,
   sendUserLogout,
   checkAuthorization,
