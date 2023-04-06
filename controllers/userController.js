@@ -1,5 +1,6 @@
 const { Users, validRoles } = require('../models/usersModel');
 
+const { log } = console;
 // Middleware
 // if req is coming from verify access token middleware, does the request still have the form: req.body.username?
 
@@ -53,7 +54,8 @@ const retrieveFullAccountInfo = async (profileQuery) => {
   return retrievedInfo;
 };
 
-const checkExistingAccountByName = (req, res, next) => {
+const checkExistingAccountByName = async (req, res, next) => {
+  log(`checkExistingAccountByName invoked: req.body`, req.body);
   Users.findOne({
     username: req.body.username,
   }).exec((err, existingUsername) => {
@@ -63,6 +65,7 @@ const checkExistingAccountByName = (req, res, next) => {
     }
 
     if (existingUsername) {
+      log(`Failed! Username is already in use!`);
       res.status(400).send({ message: 'Failed! Username is already in use!' });
       return;
     }
@@ -76,6 +79,7 @@ const checkExistingAccountByName = (req, res, next) => {
       }
 
       if (existingEmail) {
+        console.log('Failed! Email is already in use!');
         res.status(400).send({ message: 'Failed! Email is already in use!' });
         return;
       }
@@ -86,6 +90,7 @@ const checkExistingAccountByName = (req, res, next) => {
 };
 
 const checkValidRole = (req, res, next) => {
+  log(`checkValidRole invoked`);
   if (req.body.roles) {
     for (let i = 0; i < req.body.roles.length; i += 1) {
       if (!validRoles.includes(req.body.roles[i])) {

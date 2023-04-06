@@ -16,17 +16,27 @@ const { log } = console;
 const sendNewSignupAuth = async (req, res) => {
   try {
     const newRegisteredUser = await newSignupAuth(req.body);
-    if (newRegisteredUser) {
-      const { username, email, password, roles } = newRegisteredUser;
+    if (await newRegisteredUser) {
+      log(`sendNewSignupAuth`, newRegisteredUser);
+      const { savedUser, accessToken, refreshToken } = newRegisteredUser;
+      const { username, email, password, roles } = savedUser;
       console.log(`signup complete: ${newRegisteredUser}`);
-      return res.status(200).send({
-        message: `User ${username}was registered successfully`,
-        username,
-        email,
-        password,
-        roles,
-      });
+      return res
+        .status(200)
+        .cookie('rtkn', refreshToken, { httpOnly: true, secure: true })
+        .send({
+          message: `User ${username}was registered successfully`,
+          username,
+          email,
+          password,
+          roles,
+          accessToken,
+        });
     }
+    log(`sendNewSignupAuth: newRegisteredUser empty`, newRegisteredUser);
+    return res.status(404).send({
+      message: `sendNewSignupAuth failed: newRegisteredUser: ${newRegisteredUser}`,
+    });
   } catch (err) {
     return res.status(200).send({ message: `SignupError: ${err}` });
   }
@@ -34,18 +44,13 @@ const sendNewSignupAuth = async (req, res) => {
 
 const newSignupAuth = async (registrationInfo) => {
   try {
-    const {
-      username,
-      email,
-      password: unhashedPassword,
-      roles,
-      createdBy,
-    } = registrationInfo;
+    log(`newSignupAuth invoked: registrationInfo:`, registrationInfo);
+    const { password: unhashedPassword, roles } = registrationInfo;
 
     // Don't place dbCheck in newSignupAuth function; decouple and insert dbcheck conditional in "parent" function
     // const checkUsers = dbCheck(Users, inputQueries, 'Users');
     // if ((await checkUsers).length === 0) {
-    log(chalk.red(`newSignupAuth: invoking generateNewUser:`, username));
+    // log(chalk.red(`newSignupAuth: invoking generateNewUser:`, username));
 
     const roleIds = roles
       ? (await Roles.find({ name: { $in: roles } })).map(
@@ -65,8 +70,7 @@ const newSignupAuth = async (registrationInfo) => {
         });
 
     if (roleIds.length === roles.length) {
-      console.log(`newSignupAuth: Lengths are equal:
-      await roleIds: ${await roleIds}; roles: ${roles}`);
+      // log(`newSignupAuth: roleIds.length === roles.length`);
       // Better not to define newUser with decoupled variables because then I need to modify var names in multiple locations if I change the name in the underlying model (e.g. created => createdBy).
       // Better to lay down the base framework using registration info and subsequently overwrite.
       // const newUser = new Users({
@@ -80,24 +84,29 @@ const newSignupAuth = async (registrationInfo) => {
       const newUser = new Users(registrationInfo);
       newUser.password = bcrypt.hashSync(unhashedPassword, 8);
       newUser.roles = roleIds;
+      newUser.createdBy = 'user';
 
-      const savedUser = newUser
-        .save()
-        .then((saved) => {
-          if (!saved) return log(`newSignupAuth: "saved" was empty:`);
-          return saved;
-        })
-        .catch((err) => err);
+      const savedUser = await newUser.save();
 
-      return savedUser;
+      const userCredentials = {
+        username: savedUser.username,
+        userId: savedUser._id,
+        role: savedUser.roles[0],
+      };
+      const accessToken = createAccessToken(userCredentials);
+      const refreshToken = createRefreshToken(userCredentials);
+      const resContent = { savedUser, accessToken, refreshToken };
+
+      log(`newSignupAuth: resContent`, resContent);
+      return resContent;
     }
+    log(`newSignupAuth: roleIds.length !== roles.length`);
   } catch (err) {
     // console.log(`newSignupAuth: role names and role IDs do not match: await roleIds: ${await roleIds};
   }
 };
 
 const sendSigninAuthentication = async (req, res) => {
-  log(`sendSignin: req`, req);
   const { username, password: unhashedPassword } = req.body;
   Users.findOne({
     username,
