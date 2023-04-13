@@ -84,7 +84,7 @@ const newSignupAuth = async (registrationInfo) => {
       const newUser = new Users(registrationInfo);
       newUser.password = bcrypt.hashSync(unhashedPassword, 8);
       newUser.roles = roleIds;
-      newUser.createdBy = 'user';
+      // newUser.createdBy = 'user';
 
       const savedUser = await newUser.save();
 
@@ -108,6 +108,7 @@ const newSignupAuth = async (registrationInfo) => {
 
 const sendSigninAuthentication = async (req, res) => {
   const { username, password: unhashedPassword } = req.body;
+
   Users.findOne({
     username,
   })
@@ -162,14 +163,14 @@ const sendSigninAuthentication = async (req, res) => {
         // rtkn: refreshToken,
       };
 
-      return (
-        res
-          .status(200)
-          .cookie('rtkn', refreshToken, { httpOnly: true, secure: true })
-          // Don't need / Can't set auth header here. Just provide the AT in the res.send and have the mapping of the AT to the headers occur on the front end.
-          // .header({ Authorization: `bearerBackAuthController ${accessToken}` })
-          .send(resContent)
-      );
+      res.status(200);
+      res.cookie('rtkn', refreshToken, { httpOnly: true, secure: true });
+      return res
+        .status(200)
+        .cookie('rtkn', refreshToken, { httpOnly: true, secure: true })
+        .send(resContent);
+      // Don't need / Can't set auth header here. Just provide the AT in the res.send and have the mapping of the AT to the headers occur on the front end.
+      // .header({ Authorization: `bearerBackAuthController ${accessToken}` })
     });
 };
 
