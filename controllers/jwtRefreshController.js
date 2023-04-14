@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const accessSecret = process.env.JWT_SECRET_ACCESS;
 const refreshSecret = process.env.JWT_SECRET_REFRESH;
 
+const { log } = console;
 // Middleware
 const verifyAccessToken = (req, res, next) => {
   // Note that header key is always in all lowercase
@@ -71,7 +72,7 @@ const createRefreshToken = (userCredentials) => {
 const sendRefreshToken = async (req, res) => {
   try {
     const { rtkn } = req.cookies;
-
+    log(`sendRefreshToken invoked`, rtkn);
     // Is it possible that rtkn can't be read because it is http only?
     return res.status(200).send({ rtkn });
   } catch (err) {
@@ -80,28 +81,27 @@ const sendRefreshToken = async (req, res) => {
 };
 
 const sendNewAccessToken = async (req, res) => {
+  log(`sendNewAccessToken invoked`, Object.entries(req.cookies));
   const cookieRefreshToken = req.cookies.rtkn;
-  const argumentRefreshToken = req.body.refreshToken;
-  if (cookieRefreshToken === argumentRefreshToken) {
-    try {
-      const newAccessToken = await jwt.verify(
-        argumentRefreshToken,
-        process.env.JWT_SECRET_REFRESH,
-        async (err, decoded) => {
-          if (err) {
-            return res.status(406).send({ message: `Unauthorized` });
-          }
+  log(`cookieRefreshToken`, cookieRefreshToken);
 
-          const accessToken = createAccessToken(decoded);
-          return accessToken;
+  try {
+    const newAccessToken = await jwt.verify(
+      cookieRefreshToken,
+      process.env.JWT_SECRET_REFRESH,
+      async (err, decoded) => {
+        if (err) {
+          return res.status(406).send({ message: `Unauthorized` });
         }
-      );
-      return res.status(200).send({ newAccessToken });
-    } catch (err) {
-      console.log(`🚀 : file: jwtRefreshController.js:73 : err`, err);
-    }
-  } else
-    console.log(`RTs from cookie and frontend getRefreshToken are not equal`);
+
+        const accessToken = createAccessToken(decoded);
+        return accessToken;
+      }
+    );
+    return res.status(200).send({ newAccessToken });
+  } catch (err) {
+    console.log(`🚀 : file: jwtRefreshController.js:73 : err`, err);
+  }
 };
 
 const refreshJWT = {
