@@ -42,10 +42,10 @@ const sendNewSignupAuth = async (req, res) => {
   }
 };
 
-const newSignupAuth = async (registrationInfo) => {
+const newSignupAuth = async (registrationInfo, mock = 0) => {
   try {
     log(`newSignupAuth invoked: registrationInfo:`, registrationInfo);
-    const { password: unhashedPassword, roles } = registrationInfo;
+    const { password: unhashedPassword, roles, username } = registrationInfo;
 
     // Don't place dbCheck in newSignupAuth function; decouple and insert dbcheck conditional in "parent" function
     // const checkUsers = dbCheck(Users, inputQueries, 'Users');
@@ -53,17 +53,7 @@ const newSignupAuth = async (registrationInfo) => {
     // log(chalk.red(`newSignupAuth: invoking generateNewUser:`, username));
 
     const roleIds = roles
-      ? (await Roles.find({ name: { $in: roles } })).map(
-          (found) =>
-            // console.log(
-            //   `newSignupAuth: ${username}: roles exists; found:`,
-            //   found
-            // );
-            // console.log(
-            //   `newSignupAuth: ${username}: found.name: ${found.name}; _id: ${found._id}`
-            // );
-            found._id
-        )
+      ? (await Roles.find({ name: { $in: roles } })).map((found) => found._id)
       : (await Roles.find({ name: 'user' })).map((found) => {
           log(`roles doesn't exist`);
           return found._id;
@@ -84,18 +74,17 @@ const newSignupAuth = async (registrationInfo) => {
       const newUser = new Users(registrationInfo);
       newUser.password = bcrypt.hashSync(unhashedPassword, 8);
       newUser.roles = roleIds;
-      // newUser.createdBy = 'user';
 
-      const savedUser = await newUser.save();
+      if (!mock) await newUser.save();
 
       const userCredentials = {
-        username: savedUser.username,
-        userId: savedUser._id,
-        role: savedUser.roles[0],
+        username,
+        userId: newUser._id,
+        role: newUser.roles[0],
       };
       const accessToken = createAccessToken(userCredentials);
       const refreshToken = createRefreshToken(userCredentials);
-      const resContent = { savedUser, accessToken, refreshToken };
+      const resContent = { newUser, accessToken, refreshToken };
 
       log(`newSignupAuth: resContent`, resContent);
       return resContent;
@@ -195,10 +184,11 @@ const isAdmin = (req, res, next) => {
     .then((foundUser) => {
       Roles.find(
         {
-          _id: { $in: foundUser.roles },
+          _id: { $in: foundUser?.roles },
         },
         (err, roles) => {
           if (err) {
+            console.log(`isAdmin error: Can't find ${foundUser?.username}`);
             res.status(500).send({ message: err });
             return;
           }

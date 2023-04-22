@@ -10,7 +10,10 @@ const { log } = console;
 // Middleware
 const verifyAccessToken = (req, res, next) => {
   // Note that header key is always in all lowercase
-  console.log(`verifyAccessToken invoked: req.body`, req.body);
+  console.log(
+    `verifyAccessToken invoked: auth header:`,
+    req.headers.authorization.slice(-10)
+  );
   const authHeader = req.headers?.authorization
     ? req.headers.authorization
     : null;
@@ -25,16 +28,19 @@ const verifyAccessToken = (req, res, next) => {
 
   jwt.verify(accessToken, process.env.JWT_SECRET_ACCESS, (err, decoded) => {
     if (err) {
-      return res.status(401).send({ message: 'Unauthorized!' });
+      console.log(`JWT verification failed`, decoded);
+      return res
+        .status(401)
+        .send({ message: 'Unauthorized! - JWT Verification Failed' });
     }
 
-    console.log(`verifyAccessToken, req.body.userId:`, req.body);
+    console.log(`verifyAccessToken, req.body`, req.body);
     const userId = req.body?.userId ? req.body.userId : null;
     const username = req.body?.username ? req.body.username : null;
 
     // Take into account payload may differ between functions. Sometimes might be userId, sometimes username
     if (userId === decoded.userId || username === decoded.username) {
-      console.log(`----verifyAT: check passed----`);
+      console.log(`----verifyAT: check passed----`, accessToken?.slice(-8));
       req.username = decoded.username;
       req.userId = decoded.userId;
       req.role = decoded.role;
@@ -72,7 +78,10 @@ const createRefreshToken = (userCredentials) => {
 const sendRefreshToken = async (req, res) => {
   try {
     const { rtkn } = req.cookies;
-    log(`sendRefreshToken invoked`, rtkn);
+    log(
+      `sendRefreshToken invoked by ${req.headers['current-function']}: rtkn:`,
+      rtkn?.slice(-10)
+    );
     // Is it possible that rtkn can't be read because it is http only?
     return res.status(200).send({ rtkn });
   } catch (err) {
@@ -81,9 +90,9 @@ const sendRefreshToken = async (req, res) => {
 };
 
 const sendNewAccessToken = async (req, res) => {
-  log(`sendNewAccessToken invoked`, Object.entries(req.cookies));
+  // log(`sendNewAccessToken invoked`, Object.entries(req.cookies));
   const cookieRefreshToken = req.cookies.rtkn;
-  log(`cookieRefreshToken`, cookieRefreshToken);
+  // log(`cookieRefreshToken`, cookieRefreshToken);
 
   try {
     const newAccessToken = await jwt.verify(
@@ -97,6 +106,10 @@ const sendNewAccessToken = async (req, res) => {
         const accessToken = createAccessToken(decoded);
         return accessToken;
       }
+    );
+    log(
+      `sendNewAccessToken invoked by ${req.headers['current-function']}: new access token:`,
+      newAccessToken?.slice(-8)
     );
     return res.status(200).send({ newAccessToken });
   } catch (err) {

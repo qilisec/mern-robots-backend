@@ -5,50 +5,39 @@ const { seedList } = require('../models/seedUsers');
 
 const { log } = console;
 
-const reseedUsers = async (req, res) => {
+const reseedUsers = async (req, res, mock = 0) => {
   // Check roles/add missing roles with queryDBContainsSeedRoles.
-  const addedRoles = queryDBContainsSeedRoles(validRoles)
-    .then((added) => added)
-    .catch((err) => err);
-  const inputSeeds = req?.body.seedList ? req.body.seedList : seedList;
+  const addedRoles = await queryDBContainsSeedRoles(validRoles);
+  const inputSeeds = req?.body?.seedList ? req.body.seedList : seedList;
 
   try {
-    if (addedRoles) {
-      const usersAdded = [];
-      const queueSeeds = Promise.all(
-        inputSeeds.map(async (inputSeed) => {
-          const { username, email } = inputSeed;
-          usersAdded.push(username);
-          try {
-            const checkExistingUser = await dbCheck(Users, { username, email });
+    const queueSeeds = await Promise.all(
+      inputSeeds.map(async (inputSeed) => {
+        const { username, email } = inputSeed;
 
-            if (checkExistingUser === false) {
-              return newSignupAuth(inputSeed);
-            }
-            return `User ${username} already exists in DB`;
-            // return checkExistingUser;
-          } catch (err) {
-            console.log(`reseedUsers: promise.All error:`, err);
-          }
+        const checkThenRegister = dbCheck(Users, { username, email })
+          .then((exists) =>
+            !exists && !mock
+              ? newSignupAuth(inputSeed)
+              : newSignupAuth(inputSeed, true)
+          )
+          .catch((err) => err);
+
+        if (!checkThenRegister)
+          return log(`User ${username} already exists in DB`);
+        return inputSeed;
+      })
+    );
+
+    queueSeeds
+      ? res.status(200).send({
+          message: `reseedUsers: seed users created`,
+          users: queueSeeds,
         })
-      );
-
-      const finishedSeeds = await queueSeeds;
-      // console.log(`reseedUsers: complete promise.all:`, finishedSeeds);
-      if (!finishedSeeds)
-        return console.log(
-          `reseedUsers: Didn't fire; added roles: ${addedRoles}`
-        );
-
-      return res.status(200).send({
-        message: `reseedUsers: seed users created`,
-        users: finishedSeeds,
-      });
-    }
+      : console.log(`reseedUsers: Didn't fire; added roles: ${addedRoles}`);
   } catch (err) {
     const message = `reseedUsers: Finished ERROR: ${err}`;
-    log(message);
-    console.trace(err);
+    console.trace(message, err);
     res.send({ message });
   }
 };
@@ -67,11 +56,16 @@ const sendDeleteSeedUsers = async (req, res) => {
 };
 
 const clearSeedUsers = async () => {
+  console.log(`clearSeedUsers invoked`);
   const seedRoleId = Roles.findOne({ name: 'seed' })
     .then((foundRole) => {
       console.log(`clearSeedUsers: foundRole`, foundRole);
       return Users.deleteMany({
-        roles: { $elemMatch: { $eq: foundRole._id } },
+        roles: {
+          $elemMatch: { $eq: foundRole._id },
+        },
+
+        username: { $not: /admin/ },
       });
     })
     .then((deletion) => {

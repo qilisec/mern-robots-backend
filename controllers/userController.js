@@ -5,23 +5,29 @@ const { log } = console;
 // if req is coming from verify access token middleware, does the request still have the form: req.body.username?
 
 const sendUserProfile = async (req, res) => {
+  console.count(`sendUserProfile invoked`);
   const retrievedData = await retrieveFullAccountInfo(req);
-  const { username, roles, email } = retrievedData;
+  try {
+    const { username, roles, email } = retrievedData;
+    console.log(`getUserProfile: retrievedData
+    username: ${username}
+    email: ${email}
+    roles: ${roles}`);
 
-  console.log(`getUserProfile: retrievedData
-  username: ${username}
-  email: ${email}
-  roles: ${roles}`);
-
-  if (username && roles && email) {
-    return res.status(200).send({
-      message: `Profile data for user: ${req.body.userId.slice(-5)} obtained`,
-      username,
-      roles,
-      email,
-    });
+    if (username && roles && email) {
+      return res.status(200).send({
+        message: `Profile data for user: ${req.body.userId?.slice(
+          -5
+        )} obtained`,
+        username,
+        roles,
+        email,
+      });
+    }
+    return res.status(404).send({ message: ` 🔴 getUserProfile failed:` });
+  } catch (err) {
+    return console.log(err);
   }
-  return res.status(404).send({ message: ` 🔴 getUserProfile failed:` });
 };
 
 const retrieveFullAccountInfo = async (profileQuery) => {
@@ -48,7 +54,7 @@ const retrieveFullAccountInfo = async (profileQuery) => {
       return fullAccountInfo;
     })
     .catch((err) => {
-      console.log(`🔭 retrieveInfo: Could not find user ${userId.slice(-5)}`);
+      console.log(`🔭 retrieveInfo: Could not find user ${userId?.slice(-5)}`);
       return null;
     });
   return retrievedInfo;

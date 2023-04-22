@@ -9,4 +9,5 @@ lessons.txt
 *.working.*
 *.staging.*
 *.stage.*
+*.stable.*
 controllers/reseedUsers

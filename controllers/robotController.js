@@ -186,7 +186,7 @@ const getAllRobots = async (req, res) => {
     if (!robots.length) {
       return res.status(404).json({ success: false, error: `Robot not found` });
     }
-    return res.status(200).json({ success: true, data: robots });
+    return res.status(200).json({ data: robots });
   }).catch((err) => console.log(err));
 };
 

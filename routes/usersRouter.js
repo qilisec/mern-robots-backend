@@ -58,6 +58,7 @@ router.put('/authentication/refresh', sendNewAccessToken);
 // ///      User Routes     ///
 // ////////////////////////////
 router.post('/users', [verifyAccessToken, isAdmin], reseedUsers);
+router.post('/initial', reseedUsers);
 router.post(`/users/:userId`, [verifyAccessToken], sendUserProfile);
 router.delete('/users', [verifyAccessToken, isAdmin], sendDeleteSeedUsers);
 
