@@ -10,7 +10,10 @@ const Robots = new Schema(
     lastName: { type: String, required: true },
     maidenName: { type: String, required: false },
     email: { type: String, required: true },
-    password: { type: String, required: true },
+    password: {
+      type: String,
+      required: [true, 'Password is a required field'],
+    },
     birthDate: { type: String, required: true },
     image: { type: String, required: false },
     bloodGroup: { type: String, required: false },

@@ -16,11 +16,15 @@ const { log } = console;
 const sendNewSignupAuth = async (req, res) => {
   try {
     const newRegisteredUser = await newSignupAuth(req.body);
-    if (await newRegisteredUser) {
+
+    if (newRegisteredUser) {
       log(`sendNewSignupAuth`, newRegisteredUser);
+
       const { savedUser, accessToken, refreshToken } = newRegisteredUser;
       const { username, email, password, roles } = savedUser;
-      console.log(`signup complete: ${newRegisteredUser}`);
+
+      log(`signup complete: ${newRegisteredUser}`);
+
       return res
         .status(200)
         .cookie('rtkn', refreshToken, { httpOnly: true, secure: true })
@@ -42,7 +46,7 @@ const sendNewSignupAuth = async (req, res) => {
   }
 };
 
-const newSignupAuth = async (registrationInfo, mock = 0) => {
+const newSignupAuth = async (registrationInfo, mock = false) => {
   try {
     log(`newSignupAuth invoked: registrationInfo:`, registrationInfo);
     const { password: unhashedPassword, roles, username } = registrationInfo;
@@ -51,7 +55,11 @@ const newSignupAuth = async (registrationInfo, mock = 0) => {
     // const checkUsers = dbCheck(Users, inputQueries, 'Users');
     // if ((await checkUsers).length === 0) {
     // log(chalk.red(`newSignupAuth: invoking generateNewUser:`, username));
-
+    const usernameExists = await Users.find({ username });
+    if (usernameExists.length > 1) {
+      console.log(`newSignupAuth: user already exists`, usernameExists);
+      return false;
+    }
     const roleIds = roles
       ? (await Roles.find({ name: { $in: roles } })).map((found) => found._id)
       : (await Roles.find({ name: 'user' })).map((found) => {
@@ -75,8 +83,12 @@ const newSignupAuth = async (registrationInfo, mock = 0) => {
       newUser.password = bcrypt.hashSync(unhashedPassword, 8);
       newUser.roles = roleIds;
 
-      if (!mock) await newUser.save();
-
+      try {
+        const savedRobot = await newUser.save();
+        console.log(`savedRobot`, savedRobot);
+      } catch (err) {
+        console.log(`saved robot error:`, err);
+      }
       const userCredentials = {
         username,
         userId: newUser._id,

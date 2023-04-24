@@ -1,87 +1,91 @@
 const Robot = require('../models/robotsModel');
 
-// const createRobot = async (err, req, res, next) => {
-const createRobot = async (req, res) => {
+const sendCreateRobot = async (req, res) => {
+  console.log(`sendCreateRobot invoked`);
   const { body } = req;
-  // console.log(
-  //   `createRobot: req is ${Object.keys(req)}; req.body is ${Object.keys(body)}}`
-  // );
-  // console.log(`createRobot: req.body is ${Object.keys(body)}}`);
 
   if (!body) {
     return res.status(490).json({
       success: false,
-      error: `Robot Creation Failed: Error is ${err}`,
+      error: `Robot Creation Failed: No robot information found`,
     });
   }
 
-  const robot = new Robot(body);
+  // NOTE: Is this really necessary. I can't think of when robotId will collide since we are defining robotIds specifically so that they don't. Additionally, I'm not sure whether any check at all is appropriate here since there are just so many fields that make up the robot schema; are we trying to reject robot creation if any of the fields match an existing robot? If not, then which fields?
+  // NOTE: There is a conflict that arises from the need to save fetched robots as well as robots created by forms. With robots from fetch, the robotId exists when the request to save arrives from frontend. Thus, it makes sense to have a check at this point. However, for requests that come from user submitted forms, there is no robotId yet so the check will fail because robotId is undefined. If I let undefined robotIds pass through the check, it will probably end up causing robots to be saved to the db every fetch. I can think of two solutions:
+  // NOTE: 1. Create some conditionals to allow form-submitted robots to skip the check. These conditionals can be placed either in createRobot or in checkRobotById (in that case I should probably just rename function)
+  // 2. Create separate functions for fetch robots and form robots and have the check only be present for form robots
+  // Note: Attempting #1 using the "createdBy" field of the request body
+  const robotAlreadyExists = await checkRobot(body);
 
-  const checkRobot = await Robot.findOne(
-    { robotId: Number(robot.robotId) },
-    (err, targetRobot) => {
-      if (err) {
-        console.log("checkRobot didn't find a robot");
-        // return res.status(400).json({ success: false, error: err });
-      } else {
-        console.log(
-          `checkRobot found a robot with the same robotId: ${robot.robotId}`
-        );
-        //   return res.status(200).json({ success: true, data: targetRobot });
-        return targetRobot;
+  if (!robotAlreadyExists) {
+    try {
+      const newRobot = await createRobot(body);
+      if (!newRobot) {
+        const output = res
+          .status(491)
+          .json({ success: false, message: 'not a robot' });
+        console.log(`!robot: Output message is ${output.message}`);
+        return output;
       }
-    }
-  ).catch((err) => console.log(err));
-
-  if (!robot) {
-    const output = res
-      .status(491)
-      .json({ success: false, message: 'not a robot' });
-    console.log(`!robot: Output message is ${output.message}`);
-    return output;
-  }
-
-  if (!checkRobot) {
-    const savedRobot = robot
-      .save()
-      .then(
-        res.status(201).json({
-          success: true,
-          id: robot._id,
-          message: 'Robot created!',
-        }),
-        console.log(`Robot created!`)
-      )
-      .then((saveSuccess) => {
-        const savedRobotId = saveSuccess.robotId;
-        console.log(`robot created with robotId: ${savedRobotId}`);
-      })
-      .catch((err) => {
-        res.status(492).json({
-          err,
-          message: 'Robot not created!',
-        });
+      return res.status(201).send({
+        success: true,
+        id: newRobot._id,
+        message: 'Robot created!',
       });
-    // try {
-    //   res.status(201).json({
-    //     success: true,
-    //     id: robot._id,
-    //     message: 'Robot created!',
-    //   });
-    //   console.log(`robot created: ${robot.robotId}`);
-    // } catch (err) {
-    //   res.status(492).json({
-    //     err,
-    //     message: 'Robot not created!',
-    //   });
-    // }
-    return savedRobot;
+    } catch (err) {
+      console.log(err);
+      return res.status(492).json({
+        err,
+        message: 'Robot not created!',
+      });
+    }
   }
-  const creationSuccess = res.status(490).json({
+
+  return res.status(490).send({
     success: false,
-    message: `A robot with robotId: ${checkRobot.robotId} already exists`,
+    message: `A robot with robotId: ${robotAlreadyExists.robotId} already exists`,
   });
-  return creationSuccess;
+};
+
+const checkRobot = async (robotInfo) => {
+  const { createdBy, robotId } = robotInfo;
+  if (createdBy === 'seed') {
+    try {
+      console.log(`checkRobot: robotId,`, robotId);
+      const check = await Robot.findOne({ robotId: Number(robotId) });
+      if (!check) return console.log("checkRobot didn't find a robot");
+      // console.log(`checkRobot: check`, check);
+      console.log(`checkRobot found a robot with the same robotId`, robotId);
+      return check;
+    } catch (err) {
+      console.log(`checkRobot error:`, err);
+    }
+  }
+  return false;
+};
+
+const createRobot = async (robotInfo) => {
+  console.log(`createRobot Invoked`);
+  const lastRobotId = await Robot.countDocuments();
+  const newRobot = new Robot(robotInfo);
+
+  if (!newRobot) {
+    return false;
+  }
+
+  newRobot.robotId = lastRobotId + 1;
+  if (newRobot) {
+    try {
+      return newRobot.save();
+    } catch (err) {
+      return console.log(
+        `createRobot: save error: Failed to save new robot:`,
+        err
+      );
+    }
+  }
+  return console.log(`createRobot error: Failed to create robot`);
 };
 
 const updateRobot = async (req, res) => {
@@ -98,6 +102,7 @@ const updateRobot = async (req, res) => {
     if (err) {
       return res.status(404).json({
         err,
+
         message: 'Robot not found!',
       });
     }
@@ -162,20 +167,39 @@ const deleteAllSeedRobots = async (req, res) => {
 };
 
 const getRobotById = async (req, res) => {
+  console.log(`getRobotById invoked: req.body`, req.body, req.params);
   if (req.params.id === 'undefined' || req.params.id === Number('NaN')) {
     req.params.id = -1;
     return res.status(489).json({ success: false });
   }
-  await Robot.findOne({ id: req.params.id }, (err, robot) => {
-    try {
-      if (err) {
-        return res.status(488).json({ success: false, error: err });
-      }
-      return res.status(200).json({ success: true, data: robot });
-    } catch (err) {
-      console.log(`getRobotById Error: ${err}`);
-    }
-  });
+  const foundRobot = await Robot.findOne({ robotId: req.params.id });
+  console.log(`getRobotById: foundRobot`, foundRobot);
+  const resContent = {
+    message: `foundRobot ${foundRobot.robotId}`,
+    foundRobot,
+  };
+  return res.status(200).send(resContent);
+  // await Robot.findOne({ id: req.params.id }, (err, robot) => {
+  //   try {
+  //     if (err) {
+  //       return res.status(488).json({ success: false, error: err });
+  //     }
+  //     return res.status(200).json({ success: true, data: robot });
+  //   } catch (err) {
+  //     console.log(`getRobotById Error: ${err}`);
+  //   }
+  // });
+};
+
+const getRobotByCreator = async (req, res) => {
+  const { body } = req;
+  const { username } = body;
+  try {
+    const ownedRobots = await Robot.find({ createdBy: username });
+    return res.status(200).send({ message: 'Found robots', ownedRobots });
+  } catch (err) {
+    console.log(`getRobotByCreator err:`, err);
+  }
 };
 
 const getAllRobots = async (req, res) => {
@@ -191,6 +215,7 @@ const getAllRobots = async (req, res) => {
 };
 
 module.exports = {
+  sendCreateRobot,
   createRobot,
   updateRobot,
   deleteRobot,

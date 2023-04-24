@@ -34,7 +34,7 @@ const verifyAccessToken = (req, res, next) => {
         .send({ message: 'Unauthorized! - JWT Verification Failed' });
     }
 
-    console.log(`verifyAccessToken, req.body`, req.body);
+    // console.log(`verifyAccessToken, req.body`, req.body);
     const userId = req.body?.userId ? req.body.userId : null;
     const username = req.body?.username ? req.body.username : null;
 
@@ -107,10 +107,11 @@ const sendNewAccessToken = async (req, res) => {
         return accessToken;
       }
     );
-    log(
-      `sendNewAccessToken invoked by ${req.headers['current-function']}: new access token:`,
-      newAccessToken?.slice(-8)
-    );
+    if (newAccessToken)
+      log(
+        `sendNewAccessToken invoked by ${req.headers['current-function']}: new access token:`,
+        newAccessToken?.slice(-8)
+      );
     return res.status(200).send({ newAccessToken });
   } catch (err) {
     console.log(`🚀 : file: jwtRefreshController.js:73 : err`, err);

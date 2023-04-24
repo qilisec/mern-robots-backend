@@ -5,23 +5,30 @@ const { seedList } = require('../models/seedUsers');
 
 const { log } = console;
 
-const reseedUsers = async (req, res, mock = 0) => {
+const reseedUsers = async (req, res, mock = false) => {
   // Check roles/add missing roles with queryDBContainsSeedRoles.
   const addedRoles = await queryDBContainsSeedRoles(validRoles);
   const inputSeeds = req?.body?.seedList ? req.body.seedList : seedList;
-
+  console.log(`reseedUsers invoked`);
   try {
     const queueSeeds = await Promise.all(
       inputSeeds.map(async (inputSeed) => {
         const { username, email } = inputSeed;
 
-        const checkThenRegister = dbCheck(Users, { username, email })
-          .then((exists) =>
-            !exists && !mock
-              ? newSignupAuth(inputSeed)
-              : newSignupAuth(inputSeed, true)
-          )
-          .catch((err) => err);
+        const checkThenRegister = await dbCheck(Users, { username, email });
+        console.log(`checkThenRegister`, checkThenRegister);
+        const createUser =
+          !checkThenRegister || checkThenRegister.length === 0
+            ? newSignupAuth(inputSeed, mock)
+            : null;
+
+        // const checkThenRegister = dbCheck(Users, { username, email })
+        //   .then((exists) =>
+        //     exists.length === 0 && !mock
+        //       ? newSignupAuth(inputSeed)
+        //       : newSignupAuth(inputSeed, true)
+        //   )
+        //   .catch((err) => err);
 
         if (!checkThenRegister)
           return log(`User ${username} already exists in DB`);
