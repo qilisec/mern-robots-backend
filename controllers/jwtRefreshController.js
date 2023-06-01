@@ -39,7 +39,11 @@ const verifyAccessToken = (req, res, next) => {
     const username = req.body?.username ? req.body.username : null;
 
     // Take into account payload may differ between functions. Sometimes might be userId, sometimes username
-    if (userId === decoded.userId || username === decoded.username) {
+    if (
+      userId === decoded.userId ||
+      username === decoded.username ||
+      (userId === null && username === null)
+    ) {
       console.log(`----verifyAT: check passed----`, accessToken?.slice(-8));
       req.username = decoded.username;
       req.userId = decoded.userId;
