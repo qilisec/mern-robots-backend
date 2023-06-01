@@ -30,6 +30,7 @@ router.post('/robot', [verifyAccessToken], sendCreateRobot);
 router.put('/robot/:id', updateRobot);
 router.get('/robot/:id', getRobotById);
 router.delete('/robot', [verifyAccessToken, isAdmin], sendDeleteAllSeedRobots);
+// router.delete('/robot/:id', [verifyAccessToken], deleteRobot);
 router.delete('/robot/:id', deleteRobot);
 router.get('/getrobotlist', getAllRobots);
 

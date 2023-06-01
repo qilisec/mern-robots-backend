@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const Robot = require('../models/robotsModel');
 
 const sendCreateRobot = async (req, res) => {
@@ -150,16 +151,44 @@ const updateRobot = async (req, res) => {
 };
 
 const deleteRobot = async (req, res) => {
-  await Robot.findOneAndDelete({ _id: req.params.id }, (err, robot) => {
-    if (err) {
-      return res.status(400).json({ success: false, error: err });
-    }
-    if (!robot) {
-      return res.status(404).json({ success: false, error: `Robot not found` });
-    }
+  try {
+    await Robot.findOneAndDelete({ robotId: req.params.id }, (err, robot) => {
+      if (err) {
+        return res.status(400).json({ success: false, error: err });
+      }
+      if (!robot) {
+        return res
+          .status(404)
+          .json({ success: false, error: `Robot not found` });
+      }
 
-    return res.status(200).json({ success: true, data: robot });
-  }).catch((err) => console.log(err));
+      const accessToken = req.headers
+        ? req.headers.authorization.split(' ')[1]
+        : null;
+
+      if (accessToken) {
+        jwt.verify(
+          accessToken,
+          process.env.JWT_SECRET_ACCESS,
+          (err, decoded) => {
+            if (err) {
+              console.log(`JWT verification failed`, decoded);
+              return res
+                .status(401)
+                .send({ message: 'Unauthorized! - JWT Verification Failed' });
+            }
+            if (robot.createdBy === decoded.username) {
+              return res.status(200).json({ success: true, data: robot });
+            }
+          }
+        );
+      } else {
+        return res.status(200).json({ success: true, data: robot });
+      }
+    });
+  } catch (err) {
+    console.log(`deleteRobot err:`, err);
+  }
 };
 
 const deleteAllSeedRobots = async (req, res) => {
@@ -172,11 +201,11 @@ const getRobotById = async (req, res) => {
     req.params.id = -1;
     return res.status(489).json({ success: false });
   }
-  const foundRobot = await Robot.findOne({ robotId: req.params.id });
-  console.log(`getRobotById: foundRobot`, foundRobot);
+  const found = await Robot.findOne({ robotId: Number(req.params.id) });
+  console.log(`getRobotById: foundRobot`, found);
   const resContent = {
-    message: `foundRobot ${foundRobot.robotId}`,
-    foundRobot,
+    message: `found ${found.robotId}`,
+    found,
   };
   return res.status(200).send(resContent);
   // await Robot.findOne({ id: req.params.id }, (err, robot) => {
