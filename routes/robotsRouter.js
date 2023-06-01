@@ -2,6 +2,7 @@ const express = require('express');
 
 const {
   createRobot,
+  sendCreateRobot,
   updateRobot,
   deleteRobot,
   // deleteAllSeedRobots,
@@ -24,7 +25,8 @@ const { verifyAccessToken } = refreshJWT;
 
 const router = express.Router();
 
-router.post('/robot', createRobot);
+// router.post('/robot', createRobot);
+router.post('/robot', [verifyAccessToken], sendCreateRobot);
 router.put('/robot/:id', updateRobot);
 router.get('/robot/:id', getRobotById);
 router.delete('/robot', [verifyAccessToken, isAdmin], sendDeleteAllSeedRobots);
